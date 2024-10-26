@@ -6,7 +6,7 @@
 @Author  ：kg5s55
 @Description: 
 """
-import math
+import math #noqu
 x = 361
 divisor = 30
 a = math.ceil(x / divisor)
