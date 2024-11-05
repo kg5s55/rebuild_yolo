@@ -7,6 +7,7 @@
 @Description: 
 """
 import math
+
 x = 361
 divisor = 30
 a = math.ceil(x / divisor)
