@@ -104,6 +104,7 @@ def parse_opt():
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--config', type=str, default='', help='config')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
+    return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':
