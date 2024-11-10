@@ -7,7 +7,8 @@
 @Description: 
 """
 import math
-
+import os
+print(os.cpu_count())
 x = 361
 divisor = 30
 a = math.ceil(x / divisor)
