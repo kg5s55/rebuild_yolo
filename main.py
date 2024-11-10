@@ -74,7 +74,7 @@ def run(opt):
     # 随机数
     init_seeds(opt.seed + 1 + RANK, deterministic=True)
 
-    # 检查数据集
+    # 检查数据集数
     # with torch_distributed_zero_first(LOCAL_RANK):
     #     data_dict = data_dict or check_dataset(data)  # check if None
     train_path, val_path = cfg['train'], cfg['val']
