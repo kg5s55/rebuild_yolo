@@ -8,6 +8,7 @@
 """
 import os
 import torch
+import torch.nn as nn
 from utils.check import file_date
 import platform
 
@@ -47,3 +48,16 @@ def select_device(device='', batch_size=0, newline=True):
     # LOGGER.info(s)
     return torch.device(arg)
 
+def initialize_weights(model):
+    """Initializes weights of Conv2d, BatchNorm2d, and activations (Hardswish, LeakyReLU, ReLU, ReLU6, SiLU) in the
+    model.
+    """
+    for m in model.modules():
+        t = type(m)
+        if t is nn.Conv2d:
+            pass  # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        elif t is nn.BatchNorm2d:
+            m.eps = 1e-3
+            m.momentum = 0.03
+        elif t in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU]:
+            m.inplace = True

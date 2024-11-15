@@ -15,11 +15,12 @@ print(ROOT)
 
 from utils.check import check_img_size, increment_path, colorstr, init_seeds, check_suffix
 from utils.torch_utils import select_device
+from utils.dataloader import create_dataloader
 from models.detect_yolo import YOLOModel
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
-WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
+WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1)) #设备数
 
 
 def train():
@@ -47,12 +48,14 @@ def run(opt):
         img_size = check_img_size(config_yaml["img_size"], 32, floor=32 * 2)
         device = select_device(config_yaml["device"], batch_size)
         hyp = config_yaml["hyp"]
+        single_cls = config_yaml['single_cls']
         with open(hyp, "r") as f:
             hyp = yaml.safe_load(f)
     else:
         weights = opt.weights
         cfg = opt.cfg
         epochs = opt.epochs
+        single_cls = opt.single_cls
         batch_size = opt.batch_size
         img_size = check_img_size(opt.img_size, 32, floor=32 * 2)
         device = select_device(opt.device, batch_size)
@@ -61,6 +64,9 @@ def run(opt):
             hyp = yaml.safe_load(f)
     save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
     """  参数解析  """
+
+
+
 
     """ train """
     # Directories
@@ -90,7 +96,19 @@ def run(opt):
     else:
         model = YOLOModel(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)
 
+    # 候补参数
+    grid_size = max(int(model.stride.max()), 32)  # grid size (max stride)
+    nc = 1 if single_cls else int(data_dict["nc"])  # number of classes
     """ train """
+    # dataloader
+    train_loader, dataset = create_dataloader(
+        train_path,
+        img_size,
+        batch_size // WORLD_SIZE,
+        grid_size,
+        single_cls,
+
+    )
 
 
 def parse_opt():

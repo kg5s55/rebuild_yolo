@@ -8,6 +8,7 @@
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import math
 import numpy as np
 
@@ -19,6 +20,20 @@ def autopad(k, p=None, d=1):  # kernel, padding, dilation
     if p is None:
         p = k // 2 if isinstance(k, int) else [x // 2 for x in k]  # auto-pad
     return p
+
+def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
+    """Scales an image tensor `img` of shape (bs,3,y,x) by `ratio`, optionally maintaining the original shape, padded to
+    multiples of `gs`.
+    """
+    if ratio == 1.0:
+        return img
+    h, w = img.shape[2:]
+    s = (int(h * ratio), int(w * ratio))  # new size
+    img = F.interpolate(img, size=s, mode="bilinear", align_corners=False)  # resize
+    if not same_shape:  # pad/crop img
+        h, w = (math.ceil(x * ratio / gs) * gs for x in (h, w))
+    return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean
+
 
 
 # 卷积+bn+激活
@@ -262,3 +277,18 @@ class C3x(C3):
         super().__init__(c1, c2, n, shortcut, g, e)
         c_ = int(c2 * e)
         self.m = nn.Sequential(*(CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)))
+
+class Proto(nn.Module):
+    """YOLOv5 mask Proto module for segmentation models, performing convolutions and upsampling on input tensors."""
+
+    def __init__(self, c1, c_=256, c2=32):
+        """Initializes YOLOv5 Proto module for segmentation with input, proto, and mask channels configuration."""
+        super().__init__()
+        self.cv1 = Conv(c1, c_, k=3)
+        self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
+        self.cv2 = Conv(c_, c_, k=3)
+        self.cv3 = Conv(c_, c2)
+
+    def forward(self, x):
+        """Performs a forward pass using convolutional layers and upsampling on input tensor `x`."""
+        return self.cv3(self.cv2(self.upsample(self.cv1(x))))
